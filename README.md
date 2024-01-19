@@ -28,7 +28,12 @@ The foundation of this project is built upon [ItsCosmas/gofiber-boilerplate](htt
 
 Clone the repository to get started
 ```bash
-git clone https://github.com/989x/outsource-managemant.git
+git clone https://github.com/989x/outsource-managemant-backend.git
+```
+
+Navigate to the project directory
+```bash
+cd outsource-managemant-backend
 ```
 
 Switch to the development branch
