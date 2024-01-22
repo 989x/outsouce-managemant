@@ -35,7 +35,7 @@ func Routes(app *fiber.App, mgConn *models.MongoInstance) {
 	user := v1.Group("/user")
 
 	user.Get("/getall", userHan.GetAll)
-	user.Get("/getall/:id", userHan.GetById)
+	user.Get("/getby/:id", userHan.GetById)
 
 	staffRep := staff_repository.NewStaffRepoSitory(mgConn)
 	staffSrv := staff_service.NewStaffService(staffRep)
@@ -43,6 +43,20 @@ func Routes(app *fiber.App, mgConn *models.MongoInstance) {
 
 	staff := v1.Group("/staff")
 
+	staff.Get("/dashboard", staffHan.GetDashboard)
 	staff.Get("/getall", staffHan.ListStaffs)
+	staff.Get("/getby/:id", staffHan.ReadStaff)
+	staff.Get("/testGet", func(c *fiber.Ctx) error {
+		result, err := staffRep.GetAllStaffJobs()
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{
+				"errors" : err.Error(),
+			})
+		}
+
+		return c.JSON(fiber.Map{
+			"data": result,
+		})
+	})
 
 }

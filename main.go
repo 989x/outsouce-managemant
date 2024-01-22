@@ -7,6 +7,7 @@ import (
 	"osm/routes"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
@@ -18,6 +19,7 @@ func main() {
 	fmt.Println("Success to connected MongoDB.")
 
 	app := fiber.New()
+	app.Use(cors.New())
 
 	routes.Routes(app, mgConn)
 
@@ -29,7 +31,7 @@ func main() {
 		return nil
 	})
 
-	app.Listen(":3000")
+	app.Listen("0.0.0.0:3000")
 }
 
 func openBrowser(url string) {
