@@ -1,0 +1,29 @@
+@base_url = http://localhost:8000
+
+### Index route
+GET {{base_url}}/
+
+### Health Check
+GET {{base_url}}/health
+
+### Ping/Pong route for testing functionality
+GET {{base_url}}/api/v0/ping
+
+### Create a new book
+POST {{base_url}}/api/v1/books
+Content-Type: application/json
+
+{
+  "title": "The Great Gatsby",
+  "author": "F. Scott Fitzgerald",
+  "published_year": 1925
+}
+
+### Get all books
+GET {{base_url}}/api/v1/books
+
+### Get a specific book by ID (replace :id with an actual book ID)
+GET {{base_url}}/api/v1/books/:id
+
+### Delete a specific book by ID (replace :id with an actual book ID)
+DELETE {{base_url}}/api/v1/books/:id
