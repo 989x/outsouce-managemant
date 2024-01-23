@@ -9,10 +9,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const dbName = "SODdb"
+const mongoURL = "mongodb://127.0.0.1:27017/" + dbName
+
 var MongoClient *mongo.Client
 
+type MongoInstance struct {
+	Client *mongo.Client
+	Db     *mongo.Database
+}
+
+var GlobalMongoInstance *MongoInstance // Renamed to avoid conflict
+
 func InitMongoDB() {
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
+	clientOptions := options.Client().ApplyURI(mongoURL)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -28,5 +38,10 @@ func InitMongoDB() {
 	}
 
 	MongoClient = client
+	GlobalMongoInstance = &MongoInstance{
+		Client: client,
+		Db:     client.Database(dbName),
+	}
+
 	log.Println("Connected to MongoDB")
 }
