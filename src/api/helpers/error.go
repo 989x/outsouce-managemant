@@ -1,8 +1,9 @@
 package helpers
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"log"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // HandleError logs the error and returns a JSON response with an error message

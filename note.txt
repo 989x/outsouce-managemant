@@ -1,0 +1,13 @@
+// app.Get("/", func(c *fiber.Ctx) error {
+
+	// 	redirectURL := "https://one.th/oauth/login"
+	// 	openBrowser(redirectURL)
+
+	// 	return nil
+	// })
+
+    
+// func openBrowser(url string) {
+// 	cmd := exec.Command("cmd", "/c", "start", url)
+// 	cmd.Start()
+// }

@@ -15,6 +15,8 @@ import (
 const dbName = "SODdb"
 const mongoURL = "mongodb://127.0.0.1:27017/" + dbName
 
+var mgCon models.MongoInstance
+
 func MongoInit() (*models.MongoInstance, error) {
 	ctx, cancle := context.WithTimeout(context.Background(), 24*time.Hour)
 	_ = cancle

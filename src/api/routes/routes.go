@@ -44,20 +44,7 @@ func Routes(app *fiber.App, mgConn *models.MongoInstance) {
 
 	staff := v1.Group("/staff")
 
-	staff.Get("/dashboard", staffHan.GetDashboard)
-	staff.Get("/getall", staffHan.ListStaffs)
-	staff.Get("/getby/:id", staffHan.ReadStaff)
-	staff.Get("/testGet", func(c *fiber.Ctx) error {
-		result, err := staffRep.GetAllStaffJobs()
-		if err != nil {
-			return c.Status(400).JSON(fiber.Map{
-				"errors": err.Error(),
-			})
-		}
-
-		return c.JSON(fiber.Map{
-			"data": result,
-		})
-	})
+	staff.Get("/staffdashboard", staffHan.GetStaffDashboard)
+	staff.Get("/staffs", staffHan.GetStaff)
 
 }
