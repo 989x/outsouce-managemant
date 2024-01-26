@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"osm/api/models"
 	"time"
 
@@ -14,8 +15,6 @@ import (
 
 const dbName = "SODdb"
 const mongoURL = "mongodb://127.0.0.1:27017/" + dbName
-
-var mgCon models.MongoInstance
 
 func MongoInit() (*models.MongoInstance, error) {
 	ctx, cancle := context.WithTimeout(context.Background(), 24*time.Hour)
@@ -37,4 +36,27 @@ func MongoInit() (*models.MongoInstance, error) {
 	}
 
 	return &mg, nil
+}
+
+var MgConn models.MongoInstance
+
+func MgInit() {
+	ctx, cancle := context.WithTimeout(context.Background(), 24*time.Hour)
+	_ = cancle
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURL))
+	if err != nil {
+		panic(err.Error())
+	}
+
+	db := client.Database(dbName)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	MgConn.Client = client
+	MgConn.Ctx = ctx
+	MgConn.Db = db
+
+	fmt.Println("MongoDB Connected")
+
 }

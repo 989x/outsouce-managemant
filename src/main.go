@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os/exec"
 	"osm/api/database"
 	"osm/api/routes"
 
@@ -19,23 +18,12 @@ func main() {
 
 	fmt.Println("Success to connected MongoDB.")
 
+	database.MgInit()
+
 	app := fiber.New()
 	app.Use(cors.New())
 
 	routes.Routes(app, mgConn)
 
-	app.Get("/", func(c *fiber.Ctx) error {
-
-		redirectURL := "https://one.th/oauth/login"
-		openBrowser(redirectURL)
-
-		return nil
-	})
-
 	app.Listen("0.0.0.0:3000")
-}
-
-func openBrowser(url string) {
-	cmd := exec.Command("cmd", "/c", "start", url)
-	cmd.Start()
 }
