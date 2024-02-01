@@ -14,7 +14,6 @@ func StaffPrimetiveFilter(available []interface{}, team []interface{}, status []
 			bson.D{{"available", bson.M{"$in": available}}},
 			bson.D{{"team", bson.M{"$in": team}}},
 			bson.D{{"matchjob", bson.M{"$nin": status}}},
-			bson.D{{"canter", bson.M{"$nin": center}}},
 		}},
 	}
 	return filter
@@ -488,6 +487,7 @@ func GetAllStaff(date_nPlus time.Time) []primitive.D {
 			{"center", "$maxMatchjob.user.center"},
 			{"team", "$maxMatchjob.user.team"},
 			{"account_id", "$maxMatchjob.user.account_id"},
+			{"skill", "$maxMatchjob.user.skill"},
 		}}},
 		{{"$match", bson.D{
 			{"start_date", bson.D{{"$lte", date_nPlus}}},
@@ -499,6 +499,98 @@ func GetAllStaff(date_nPlus time.Time) []primitive.D {
 			}},
 			{"team", bson.D{{"$in", bson.A{"Dev", "Tester", "UXUI", "Data Sci", "IT Infra", "DevOps"}}}},
 		}}},
+	}
+	return pipeline
+}
+
+func SetPrimitiveSearch(center []interface{}, available []interface{}, status []interface{}, team []interface{}, outsource []interface{}, statussite []interface{}) primitive.D {
+	filter := bson.D{
+		{"$or", bson.A{
+			bson.D{{"center", bson.M{"$in": center}}},
+			// bson.D{{"available", bson.M{"$in": available}}},
+			// bson.D{{"status", bson.M{"$in": status}}},
+			// bson.D{{"team", bson.M{"$in": team}}},
+			// bson.D{{"outsource", bson.M{"$in": outsource}}},
+			// bson.D{{"statussite", bson.M{"$in": statussite}}},
+		}},
+	}
+	return filter
+}
+
+func GetSearchStaff(fillter primitive.D, date_nPlus time.Time) []primitive.D {
+	pipeline := []bson.D{
+		{{"$match", bson.D{
+			{"start_jobs_date", bson.D{{"$lte", date_nPlus}}},
+			{"$or", bson.A{
+				bson.D{{"finish_jobs_date", nil}},
+				bson.D{{"finish_jobs_date", bson.D{{"$gte", date_nPlus}}}},
+			}},
+		}}},
+		{{"$group", bson.D{
+			{"_id", "$user_id"},
+			{"matchjob", bson.D{{"$push", "$$ROOT"}}},
+		}}},
+		{{"$unwind", "$matchjob"}},
+		{{"$sort", bson.D{
+			{"matchjob.available", -1},
+			{"matchjob.status", -1},
+			{"matchjob.start_jobs_date", -1},
+			{"matchjob.updatedAt", -1},
+			{"matchjob._id", -1},
+		}}},
+		{{"$group", bson.D{
+			{"_id", "$_id"},
+			{"maxMatchjob", bson.D{{"$first", "$matchjob"}}},
+		}}},
+		{{"$unset", "_id"}},
+		{{"$lookup", bson.D{
+			{"from", "staffs"},
+			{"localField", "maxMatchjob.user_id"},
+			{"foreignField", "_id"},
+			{"as", "maxMatchjob.user"},
+		}}},
+		{{"$unwind", "$maxMatchjob.user"}},
+		{{"$project", bson.D{
+			{"_id", "$maxMatchjob._id"},
+			{"user_id", "$maxMatchjob.user_id"},
+			{"start_jobs_date", "$maxMatchjob.start_jobs_date"},
+			{"finish_jobs_date", "$maxMatchjob.finish_jobs_date"},
+			{"status", "$maxMatchjob.status"},
+			{"matchjob", "$maxMatchjob.matchjob"},
+			{"address_onsite", "$maxMatchjob.address_onsite"},
+			{"status_site", "$maxMatchjob.status_site"},
+			{"createdAt", "$maxMatchjob.createdAt"},
+			{"updatedAt", "$maxMatchjob.updatedAt"},
+			{"available", "$maxMatchjob.available"},
+			{"outsource", "$maxMatchjob.outsource"},
+			{"note", "$maxMatchjob.note"},
+			{"job_id", "$maxMatchjob.job_id"},
+			{"id", "$maxMatchjob.user.id"},
+			{"fname", "$maxMatchjob.user.fname"},
+			{"lname", "$maxMatchjob.user.lname"},
+			{"nname", "$maxMatchjob.user.nname"},
+			{"start_date", "$maxMatchjob.user.start_date"},
+			{"active", "$maxMatchjob.user.active"},
+			{"isTransfer", "$maxMatchjob.user.isTransfer"},
+			{"last_active_date", "$maxMatchjob.user.last_active_date"},
+			{"center", "$maxMatchjob.user.center"},
+			{"team", "$maxMatchjob.user.team"},
+			{"account_id", "$maxMatchjob.user.account_id"},
+			{"skill", "$maxMatchjob.user.skill"},
+		}}},
+		{{"$match", bson.D{
+			{"start_date", bson.D{{"$lte", date_nPlus}}},
+			{"account_id", bson.D{{"$exists", true}}},
+			{"account_id", bson.D{{"$ne", nil}}},
+			{"$or", bson.A{
+				bson.D{{"last_active_date", nil}},
+				bson.D{{"last_active_date", bson.D{{"$gt", date_nPlus}}}},
+			}},
+			{"team", bson.D{{"$in", bson.A{"Dev", "Tester", "UXUI", "Data Sci", "IT Infra", "DevOps"}}}},
+		}}},
+		{
+			{"$match", fillter},
+		},
 	}
 	return pipeline
 }

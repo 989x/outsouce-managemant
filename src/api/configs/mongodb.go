@@ -1,4 +1,4 @@
-package database
+package configs
 
 import (
 	"context"
@@ -19,7 +19,7 @@ const mongoURL = "mongodb://127.0.0.1:27017/" + dbName
 
 var MgConn mongoInstance
 
-func MgInit() {
+func InitMongoDb() {
 	ctx, cancle := context.WithTimeout(context.Background(), 24*time.Hour)
 	_ = cancle
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURL))

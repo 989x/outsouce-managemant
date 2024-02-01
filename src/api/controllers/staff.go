@@ -1,12 +1,19 @@
 package controllers
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"osm/api/database"
 	"osm/api/helpers"
 	"osm/api/models"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -40,6 +47,7 @@ func GetStaffDashBoard(c *fiber.Ctx) error {
 		return helpers.JsonResponse(c, err, 400, nil, "Fail")
 	}
 	getDevAvanonit_count := len(result_total) // Total Dev Available
+
 	// ____________________________________________Query - Dev Available____________________________________________//
 
 	// --> Prepare Filters
@@ -265,6 +273,10 @@ func GetStaffByJobName(c *fiber.Ctx) error {
 	return helpers.JsonResponse(c, nil, 200, participant_slide, "Success")
 }
 
+/*>>>>>>>>>>     Staffs     <<<<<<<<<<*/
+
+var staffSLide []models.Staff
+
 func GetStaff(c *fiber.Ctx) error {
 	collection := database.MgConn.Db.Collection("staff_jobs")
 	context := database.MgConn.Ctx
@@ -283,11 +295,338 @@ func GetStaff(c *fiber.Ctx) error {
 		return helpers.JsonResponse(c, err, 400, nil, "Fail")
 	}
 
-	var staff_slide []models.Staff
-
-	if err := query_result.All(context, &staff_slide); err != nil {
+	if err := query_result.All(context, &staffSLide); err != nil {
 		return helpers.JsonResponse(c, err, 400, nil, "Fail")
 	}
 
-	return helpers.JsonResponse(c, nil, 200, staff_slide, "Success")
+	return helpers.JsonResponse(c, nil, 200, staffSLide, "Success")
+}
+
+func GetFillterStaff(c *fiber.Ctx) error {
+	collection := database.MgConn.Db.Collection("staff_jobs")
+	context := database.MgConn.Ctx
+
+	date_format_string := "2006-01-02"
+	date_query := c.Query("date", time.Now().Add(-24*time.Hour).Format(date_format_string))
+	date_nPlus, err := time.Parse(date_format_string, date_query)
+
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	var fillterBody models.SearchStaff
+	if err := c.BodyParser(&fillterBody); err != nil {
+		return helpers.JsonResponse(c, err, 200, nil, "Fail")
+	}
+
+	pipeline := helpers.GetAllStaff(date_nPlus)
+
+	query_result, err := collection.Aggregate(context, pipeline)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	if err := query_result.All(context, &staffSLide); err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	var searchStaffResults []models.Staff
+
+	searchBar := helpers.SplitParser(fillterBody.Search)
+	searchCenter := helpers.SplitParser(fillterBody.Center)
+	fmt.Println(fillterBody.Center)
+	searchAvailable := helpers.SplitParser(fillterBody.Available)
+	searchStatus := helpers.SplitParser(fillterBody.Status)
+	searchTeam := helpers.SplitParser(fillterBody.Team)
+	searchOutsource := helpers.SplitParser(fillterBody.Outsource)
+	searchStatusSite := helpers.SplitParser(fillterBody.Status_site)
+	searchSkill := helpers.SplitParser(fillterBody.Skill)
+
+	for index, _ := range staffSLide {
+		searchBarResult := false
+		searchSkillResult := false
+
+		if searchBar[0] == "" ||
+			searchBar[0] == staffSLide[index].ID ||
+			searchBar[0] == staffSLide[index].Fname ||
+			searchBar[0] == staffSLide[index].Lname ||
+			searchBar[0] == staffSLide[index].Nname {
+			searchBarResult = true
+		}
+
+		for skillIndex, _ := range staffSLide[index].Skill {
+			for serachSkillIndex, _ := range searchSkill {
+				if staffSLide[index].Skill[skillIndex].Skill == searchSkill[serachSkillIndex] ||
+					searchSkill[0] == "All" ||
+					searchSkill[0] == "" {
+					searchSkillResult = true
+					break
+				}
+			}
+		}
+
+		if searchBarResult && searchSkillResult &&
+			helpers.SearchCodition(searchCenter, staffSLide[index].Center) &&
+			helpers.SearchCodition(searchAvailable, staffSLide[index].Available) &&
+			helpers.SearchCodition(searchStatus, staffSLide[index].Status) &&
+			helpers.SearchCodition(searchTeam, staffSLide[index].Team) &&
+			helpers.SearchCodition(searchOutsource, staffSLide[index].Outsource) &&
+			helpers.SearchCodition(searchStatusSite, staffSLide[index].StatusSite) {
+			searchStaffResults = append(searchStaffResults, staffSLide[index])
+		}
+	}
+
+	return helpers.JsonResponse(c, nil, 200, searchStaffResults, "Success")
+}
+
+func AddStaff(c *fiber.Ctx) error {
+	collectionStaff := database.MgConn.Db.Collection("staffs")
+	collectionStaffJob := database.MgConn.Db.Collection("staff_jobs")
+	_ = collectionStaffJob
+	context := database.MgConn.Ctx
+
+	var staffBody models.NewStaffBody
+
+	if err := c.BodyParser(&staffBody); err != nil {
+		return helpers.JsonResponse(c, err, 200, nil, "Fail")
+	}
+
+	query := bson.D{{Key: "id", Value: staffBody.ID}}
+
+	queryResult := collectionStaff.FindOne(context, query)
+
+	var exists []models.NewStaffSave
+	queryResult.Decode(&exists)
+
+	if len(exists) > 1 {
+		err := errors.New("Staff ID has duplicate.")
+		return helpers.JsonResponse(c, err, 200, nil, "Fail")
+	}
+
+	type StaffRA struct {
+		ObjectID string `json:"objectId"`
+		Type     string `json:"type"`
+		Image    bool   `json:"image"`
+		Search   int    `json:"search"`
+	}
+
+	checkSrattRa := StaffRA{
+		ObjectID: "",
+		Type:     "",
+		Image:    false,
+		Search:   staffBody.ID,
+	}
+
+	jsonConv, err := json.Marshal(checkSrattRa)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+	buffer := bytes.NewBuffer(jsonConv)
+
+	client := &http.Client{}
+
+	httpRequest, err := http.NewRequest("POST", "https://one.th/api/oauth/getpwd", buffer)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+	httpRequest.Header.Set("Content-Type", "application/json")
+
+	requestClient, err := client.Do(httpRequest)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+	defer requestClient.Body.Close()
+
+	httpResult, err := ioutil.ReadAll(requestClient.Body)
+
+	var staffRaResult models.StaffRaResult
+
+	if err = json.Unmarshal(httpResult, &staffRaResult); err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	if staffRaResult.Count < 1 {
+		err := errors.New("Not Found AccountID Staff.")
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	staffInsertModel := models.NewStaffSave{
+		Email:             staffBody.Email,
+		Phone:             staffBody.Phone,
+		Active:            staffBody.Active,
+		IsTransfer:        staffBody.IsTransfer,
+		LastActiveDate:    time.Now(),
+		Skill:             staffBody.Skill,
+		Certificate:       staffBody.Certificate,
+		ID:                staffBody.ID,
+		Prefix:            staffBody.Prefix,
+		Fname:             staffBody.Fname,
+		Lname:             staffBody.Lname,
+		Nname:             staffBody.Nname,
+		Center:            staffBody.Center,
+		Team:              staffBody.Team,
+		StartDate:         time.Now(),
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
+		V:                 0,
+		AccountID:         staffBody.AccountID,
+		OneEmail:          staffBody.OneEmail,
+		LeaveDetail:       staffBody.LeaveDetail,
+		ResignDescription: staffBody.ResignDescription,
+	}
+
+	StaffInsertResult, err := collectionStaff.InsertOne(context, staffInsertModel)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	_ = StaffInsertResult
+
+	query = bson.D{{Key: "_id", Value: StaffInsertResult.InsertedID}}
+	queryResult = collectionStaff.FindOne(c.Context(), query)
+
+	var staffLastInsert models.NewStaffSave
+	queryResult.Decode(&staffLastInsert)
+
+	staffJobInsertModel := models.NewStaffJob{
+		FinishJobsDate: nil,
+		AcceptJob:      false,
+		UserID:         staffLastInsert.Obj_ID,
+		JobID:          nil,
+		StartJobsDate:  time.Now(),
+		Status:         "Training",
+		Available:      "Available",
+		Outsource:      "ยังไม่ได้รับงาน",
+		Matchjob:       "ว่าง",
+		AddressOnsite:  "ตามต้นสังกัด",
+		StatusSite:     "Offsite",
+		Note:           "สถานะ เริ่มต้น",
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		V:              0,
+	}
+
+	StaffJobInsertResult, err := collectionStaff.InsertOne(context, staffJobInsertModel)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	query = bson.D{{Key: "_id", Value: StaffJobInsertResult.InsertedID}}
+	queryResult = collectionStaff.FindOne(c.Context(), query)
+
+	var staffJobLastInsert models.NewStaffJob
+	queryResult.Decode(&staffJobLastInsert)
+
+	staffInsertResult := models.StaffInsertResult{
+		NewStaff:    staffLastInsert,
+		NewStassJob: staffJobLastInsert,
+	}
+
+	return helpers.JsonResponse(c, nil, 200, staffInsertResult, "Success")
+}
+
+func GetStaffById(c *fiber.Ctx) error {
+	userId := c.Params("id")
+
+	fmt.Println(userId)
+
+	var staffResults []models.Staff
+
+	for index, _ := range staffSLide {
+		if staffSLide[index].UserID == userId {
+			staffResults = append(staffResults, staffSLide[index])
+			break
+		}
+	}
+
+	var staffResult models.Staff
+	staffResult = staffResults[0]
+
+	return helpers.JsonResponse(c, nil, 200, staffResult, "Success")
+}
+
+func GetStaffView(c *fiber.Ctx) error {
+	collection := database.MgConn.Db.Collection("staffs")
+	context := database.MgConn.Ctx
+
+	paramsUser := c.Params("id")
+	_id, err := primitive.ObjectIDFromHex(paramsUser)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+	var staff models.StaffGetForUpdate
+
+	query := bson.D{{Key: "_id", Value: _id}}
+	if err := collection.FindOne(context, query).Decode(&staff); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	return helpers.JsonResponse(c, nil, 200, staff, "Success")
+}
+
+func GetStaffJobView(c *fiber.Ctx) error {
+	collection := database.MgConn.Db.Collection("staff_jobs")
+	context := database.MgConn.Ctx
+
+	paramsUser := c.Params("id")
+	userId, err := primitive.ObjectIDFromHex(paramsUser)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	query := bson.D{{Key: "user_id", Value: userId}}
+	queryResult, err := collection.Find(context, query)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	var staffJob []models.StaffJobGetForUpdate
+
+	if err := queryResult.All(context, &staffJob); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	return helpers.JsonResponse(c, nil, 200, staffJob, "Success")
+}
+
+func UpdateStaff(c *fiber.Ctx) error {
+	collection := database.MgConn.Db.Collection("staffs")
+	context := database.MgConn.Ctx
+
+	var staff models.StaffGetForUpdate
+	if err := c.BodyParser(&staff); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	staff.UpdatedAt = time.Now()
+
+	paramsUser := c.Params("id")
+	_id, err := primitive.ObjectIDFromHex(paramsUser)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	query := bson.D{{Key: "_id", Value: _id}}
+	update := bson.D{
+		{Key: "$set",
+			Value: bson.D{
+				{Key: "email", Value: staff.Email},
+				{Key: "phone", Value: staff.Phone},
+				{Key: "skill", Value: staff.Skill},
+				{Key: "prefix", Value: staff.Prefix},
+				{Key: "fname", Value: staff.Fname},
+				{Key: "lname", Value: staff.Lname},
+				{Key: "nname", Value: staff.Nname},
+				{Key: "center", Value: staff.Center},
+				{Key: "team", Value: staff.Team},
+				{Key: "updatedAt", Value: staff.UpdatedAt},
+			},
+		},
+	}
+
+	if err := collection.FindOneAndUpdate(context, query, update).Err(); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	return helpers.JsonResponse(c, nil, 200, nil, "Success")
 }
