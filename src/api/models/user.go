@@ -1,6 +1,6 @@
 package models
 
-type UserResponse struct {
+type UserModel struct {
 	ID              string   `json:"id,omitempty" bson:"_id,omitempty"`
 	Role            string   `json:"role"`
 	Email           []string `json:"email"`

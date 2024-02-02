@@ -1,16 +1,28 @@
-@base_url = http://localhost:8000
+@localhost = http://localhost:8000
+@localhostV0 = http://localhost:8000/api/v0
+@localhostV1 = http://localhost:8000/api/v1
+@localhostV2 = http://localhost:8000/api/v2
+
+# ________________________________________ test
 
 ### Index route
-GET {{base_url}}/
+GET {{localhost}}/
 
 ### Health Check
-GET {{base_url}}/health
+GET {{localhost}}/health
 
 ### Ping/Pong route for testing functionality
-GET {{base_url}}/api/v0/ping
+GET {{localhostV0}}/ping
+
+# ________________________________________ user
+
+### Get all users
+GET {{localhostV1}}/users
+
+# ________________________________________ book
 
 ### Create a new book
-POST {{base_url}}/api/v1/books
+POST {{localhostV1}}/books
 Content-Type: application/json
 
 {
@@ -20,10 +32,10 @@ Content-Type: application/json
 }
 
 ### Get all books
-GET {{base_url}}/api/v1/books
+GET {{localhostV1}}/books
 
-### Get a specific book by ID (replace :id with an actual book ID)
-GET {{base_url}}/api/v1/books/:id
+### Get a specific book by ID
+GET {{localhostV1}}/books/:id
 
-### Delete a specific book by ID (replace :id with an actual book ID)
-DELETE {{base_url}}/api/v1/books/:id
+### Delete a specific book by ID
+DELETE {{localhostV1}}/books/:id
