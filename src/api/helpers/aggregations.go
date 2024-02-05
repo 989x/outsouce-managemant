@@ -503,20 +503,6 @@ func GetAllStaff(date_nPlus time.Time) []primitive.D {
 	return pipeline
 }
 
-func SetPrimitiveSearch(center []interface{}, available []interface{}, status []interface{}, team []interface{}, outsource []interface{}, statussite []interface{}) primitive.D {
-	filter := bson.D{
-		{"$or", bson.A{
-			bson.D{{"center", bson.M{"$in": center}}},
-			// bson.D{{"available", bson.M{"$in": available}}},
-			// bson.D{{"status", bson.M{"$in": status}}},
-			// bson.D{{"team", bson.M{"$in": team}}},
-			// bson.D{{"outsource", bson.M{"$in": outsource}}},
-			// bson.D{{"statussite", bson.M{"$in": statussite}}},
-		}},
-	}
-	return filter
-}
-
 func GetSearchStaff(fillter primitive.D, date_nPlus time.Time) []primitive.D {
 	pipeline := []bson.D{
 		{{"$match", bson.D{

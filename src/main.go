@@ -4,18 +4,16 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"osm/api/database"
-	"osm/api/routes"
 	"path/filepath"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
+	"outsource-management/api/configs"
+	command "outsource-management/api/routes"
 
 	"github.com/alecthomas/kingpin/v2"
 )
 
 const (
-	ProgramName = "Outsource managrment"
+	ProgramName = "Outsource management"
 	Version     = "0.0.1"
 )
 
@@ -27,27 +25,25 @@ var (
 )
 
 func main() {
-	a := kingpin.New(filepath.Base(os.Args[0]), fmt.Sprintf(ProgramName, Version))
+
+	a := kingpin.New(filepath.Base(os.Args[0]), fmt.Sprintf("%s %s", ProgramName, Version))
 	a.Version(Version)
 	a.HelpFlag.Short('h')
 
-	startCommand := a.Command("start", "Start server command ...")
-	startArgs.host = startCommand.Flag("host", "Set server host address").Envar("SERVER_HOST").Default("0.0.0.0").IP()
-	startArgs.port = startCommand.Flag("post", "Set server listen port").Envar("SERVER_PORT").Default("5000").String()
+	startCommand := a.Command("start", "Start server command.")
+	startArgs.host = startCommand.Flag("host", "Set server host address.").Envar("SERVER_HOST").Default("0.0.0.0").IP()
+	startArgs.port = startCommand.Flag("post", "Set server listen port").Envar("SERVER_PORT").Default("3000").String()
 
+	//Init Database
+	configs.InitMongoDb()
+
+	//Ruc case service
 	switch kingpin.MustParse(a.Parse(os.Args[1:])) {
 	case startCommand.FullCommand():
-		fmt.Println("Hello command.")
+		if err := command.Start(startArgs.host.String(), *startArgs.port); err != nil {
+			panic(err.Error())
+		}
 	default:
+		fmt.Println("Command not found.")
 	}
-
-	// Old Service
-	database.MgInit()
-	fmt.Println("Success to connected MongoDB.")
-	app := fiber.New()
-	app.Use(cors.New())
-
-	routes.Routes(app)
-
-	app.Listen("0.0.0.0:3000")
 }

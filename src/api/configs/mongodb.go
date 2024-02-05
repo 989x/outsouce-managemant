@@ -22,15 +22,13 @@ var MgConn mongoInstance
 func InitMongoDb() {
 	ctx, cancle := context.WithTimeout(context.Background(), 24*time.Hour)
 	_ = cancle
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoURL))
+
+	client, err := mongo.Connect(context.TODO(), options.Client(), options.Client().ApplyURI(mongoURL))
 	if err != nil {
 		panic(err.Error())
 	}
 
 	db := client.Database(dbName)
-	if err != nil {
-		panic(err.Error())
-	}
 
 	MgConn.Client = client
 	MgConn.Ctx = ctx

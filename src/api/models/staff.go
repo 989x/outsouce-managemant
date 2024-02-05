@@ -312,8 +312,60 @@ type StaffGetForUpdate struct {
 	Nname     string    `json:"nname" bson:"nname,omitempty"`
 	Center    string    `json:"center" bson:"center,omitempty"`
 	Team      string    `json:"team" bson:"team,omitempty"`
+	Startdate time.Time `json:"start_date" bson:"start_date,omitempty"`
 	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt,omitempty"`
 }
+
+type ResponseStaffGetForUpdate struct {
+	UserID string `json:"user_id" bson:"_id,omitempty"`
+	Email  []Email
+	Phone  []Phone
+	Skill  []struct {
+		Skill string `json:"skill" bson:"skill,omitempty"`
+		Level int    `json:"level" bson:"level,omitempty"`
+	} `json:"skill" bson:"skill,omitempty"`
+	ID        string    `json:"id" bson:"id,omitempty"`
+	Prefix    string    `json:"prefix" bson:"prefix,omitempty"`
+	Fname     string    `json:"fname" bson:"fname,omitempty"`
+	Lname     string    `json:"lname" bson:"lname,omitempty"`
+	Nname     string    `json:"nname" bson:"nname,omitempty"`
+	Center    string    `json:"center" bson:"center,omitempty"`
+	Team      string    `json:"team" bson:"team,omitempty"`
+	Startdate time.Time `json:"start_date" bson:"start_date,omitempty"`
+	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt,omitempty"`
+}
+
+type RequestStaffGetForUpdate struct {
+	UserID string `json:"user_id"`
+	Email  []struct {
+		Email string `json:"email"`
+	} `json:"Email"`
+	Phone []struct {
+		Phone string `json:"phone"`
+	} `json:"Phone"`
+	Skill []struct {
+		Skill string `json:"skill"`
+		Level int    `json:"level"`
+	} `json:"skill"`
+	ID        string    `json:"id"`
+	Prefix    string    `json:"prefix"`
+	Fname     string    `json:"fname"`
+	Lname     string    `json:"lname"`
+	Nname     string    `json:"nname"`
+	Center    string    `json:"center"`
+	Team      string    `json:"team"`
+	StartDate time.Time `json:"start_date"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type Phone struct {
+	Phone string `json:"phone"`
+}
+
+type Email struct {
+	Email string `json:"email"`
+}
+
 type StaffSkill struct {
 	Skill string `json:"skill" bson:"skill,omitempty"`
 	Level int    `json:"level" bson:"level,omitempty"`

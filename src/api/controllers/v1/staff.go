@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"osm/api/database"
-	"osm/api/helpers"
-	"osm/api/models"
+	"outsource-management/api/configs"
+	"outsource-management/api/helpers"
+	"outsource-management/api/models"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -17,9 +17,369 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+var staffSLide []models.Staff
+
 func GetStaffDashBoard(c *fiber.Ctx) error {
-	collection := database.MgConn.Db.Collection("staff_jobs")
-	context := database.MgConn.Ctx
+	collection := configs.MgConn.Db.Collection("staff_jobs")
+	context := configs.MgConn.Ctx
+
+	dateFormatString := "2006-01-02"
+	dateQuery := c.Query("date", time.Now().Add(-24*time.Hour).Format(dateFormatString))
+	dateNplus, err := time.Parse(dateFormatString, dateQuery)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	//  >> Get Staff Slide.
+	pipeline := helpers.GetAllStaff(dateNplus)
+
+	queryResult, err := collection.Aggregate(context, pipeline)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	if err := queryResult.All(context, &staffSLide); err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	// >> Prepare Dashboard Data  : Start Method<<
+	staffAll := len(staffSLide)
+	staffAvailableAll := 0
+	staffOnboardAll := 0
+	staffDevOnBoard := 0
+	staffDevAvailable := 0
+	staffDev := 0
+	staffItOnboard := 0
+	StaffItAvailable := 0
+	staffIt := 0
+
+	var bnkAvailables []models.StaffCenterStatus
+	var bnkOnborads []models.StaffCenterStatus
+	var chmAvailables []models.StaffCenterStatus
+	var chmOnborads []models.StaffCenterStatus
+	var khnAvailables []models.StaffCenterStatus
+	var khnOnborads []models.StaffCenterStatus
+	var hdyAvailables []models.StaffCenterStatus
+	var hdyOnboards []models.StaffCenterStatus
+
+	//  >> Loop count data if coditions is true
+	for _, staffValue := range staffSLide {
+		if staffValue.Team != "IT Infra" {
+			staffDev++
+			if staffValue.Available == "Available" {
+				staffAvailableAll++
+				staffDevAvailable++
+			} else if staffValue.Available == "On Board" {
+				staffOnboardAll++
+				staffDevOnBoard++
+			}
+		} else if staffValue.Team == "IT Infra" {
+			staffIt++
+			if staffValue.Available == "Available" {
+				staffAvailableAll++
+				StaffItAvailable++
+			} else if staffValue.Available == "On Board" {
+				staffOnboardAll++
+				staffItOnboard++
+			}
+		}
+
+		if staffValue.Center == "กรุงเทพ" && staffValue.Available == "Available" {
+			bnkAvailable := models.StaffCenterStatus{
+				Obj_ID:         staffValue.Obj_ID,
+				UserID:         staffValue.UserID,
+				StartJobsDate:  staffValue.StartJobsDate,
+				FinishJobsDate: staffValue.FinishJobsDate,
+				Matchjob:       staffValue.Matchjob,
+				Status:         staffValue.Status,
+				AddressOnsite:  staffValue.AddressOnsite,
+				StatusSite:     staffValue.StatusSite,
+				CreatedAt:      staffValue.CreatedAt,
+				UpdatedAt:      staffValue.UpdatedAt,
+				Available:      staffValue.Available,
+				Outsource:      staffValue.Outsource,
+				Note:           staffValue.Note,
+				JobID:          staffValue.JobID,
+				ID:             staffValue.ID,
+				Fname:          staffValue.Fname,
+				Lname:          staffValue.Lname,
+				Nname:          staffValue.Nname,
+				StartDate:      staffValue.StartDate,
+				Active:         staffValue.Active,
+				IsTransfer:     staffValue.IsTransfer,
+				LastActiveDate: staffValue.LastActiveDate,
+				Center:         staffValue.Center,
+				Team:           staffValue.Team,
+				AccountID:      staffValue.AccountID,
+			}
+			bnkAvailables = append(bnkAvailables, bnkAvailable)
+		} else if staffValue.Center == "กรุงเทพ" && staffValue.Available == "On Board" {
+			bnkOnborad := models.StaffCenterStatus{
+				Obj_ID:         staffValue.Obj_ID,
+				UserID:         staffValue.UserID,
+				StartJobsDate:  staffValue.StartJobsDate,
+				FinishJobsDate: staffValue.FinishJobsDate,
+				Matchjob:       staffValue.Matchjob,
+				Status:         staffValue.Status,
+				AddressOnsite:  staffValue.AddressOnsite,
+				StatusSite:     staffValue.StatusSite,
+				CreatedAt:      staffValue.CreatedAt,
+				UpdatedAt:      staffValue.UpdatedAt,
+				Available:      staffValue.Available,
+				Outsource:      staffValue.Outsource,
+				Note:           staffValue.Note,
+				JobID:          staffValue.JobID,
+				ID:             staffValue.ID,
+				Fname:          staffValue.Fname,
+				Lname:          staffValue.Lname,
+				Nname:          staffValue.Nname,
+				StartDate:      staffValue.StartDate,
+				Active:         staffValue.Active,
+				IsTransfer:     staffValue.IsTransfer,
+				LastActiveDate: staffValue.LastActiveDate,
+				Center:         staffValue.Center,
+				Team:           staffValue.Team,
+				AccountID:      staffValue.AccountID,
+			}
+			bnkOnborads = append(bnkOnborads, bnkOnborad)
+		} else if staffValue.Center == "เชียงใหม่" && staffValue.Available == "Available" {
+			chmAvailable := models.StaffCenterStatus{
+				Obj_ID:         staffValue.Obj_ID,
+				UserID:         staffValue.UserID,
+				StartJobsDate:  staffValue.StartJobsDate,
+				FinishJobsDate: staffValue.FinishJobsDate,
+				Matchjob:       staffValue.Matchjob,
+				Status:         staffValue.Status,
+				AddressOnsite:  staffValue.AddressOnsite,
+				StatusSite:     staffValue.StatusSite,
+				CreatedAt:      staffValue.CreatedAt,
+				UpdatedAt:      staffValue.UpdatedAt,
+				Available:      staffValue.Available,
+				Outsource:      staffValue.Outsource,
+				Note:           staffValue.Note,
+				JobID:          staffValue.JobID,
+				ID:             staffValue.ID,
+				Fname:          staffValue.Fname,
+				Lname:          staffValue.Lname,
+				Nname:          staffValue.Nname,
+				StartDate:      staffValue.StartDate,
+				Active:         staffValue.Active,
+				IsTransfer:     staffValue.IsTransfer,
+				LastActiveDate: staffValue.LastActiveDate,
+				Center:         staffValue.Center,
+				Team:           staffValue.Team,
+				AccountID:      staffValue.AccountID,
+			}
+			chmAvailables = append(chmAvailables, chmAvailable)
+		} else if staffValue.Center == "เชียงใหม่" && staffValue.Available == "On Board" {
+			chmOnborad := models.StaffCenterStatus{
+				Obj_ID:         staffValue.Obj_ID,
+				UserID:         staffValue.UserID,
+				StartJobsDate:  staffValue.StartJobsDate,
+				FinishJobsDate: staffValue.FinishJobsDate,
+				Matchjob:       staffValue.Matchjob,
+				Status:         staffValue.Status,
+				AddressOnsite:  staffValue.AddressOnsite,
+				StatusSite:     staffValue.StatusSite,
+				CreatedAt:      staffValue.CreatedAt,
+				UpdatedAt:      staffValue.UpdatedAt,
+				Available:      staffValue.Available,
+				Outsource:      staffValue.Outsource,
+				Note:           staffValue.Note,
+				JobID:          staffValue.JobID,
+				ID:             staffValue.ID,
+				Fname:          staffValue.Fname,
+				Lname:          staffValue.Lname,
+				Nname:          staffValue.Nname,
+				StartDate:      staffValue.StartDate,
+				Active:         staffValue.Active,
+				IsTransfer:     staffValue.IsTransfer,
+				LastActiveDate: staffValue.LastActiveDate,
+				Center:         staffValue.Center,
+				Team:           staffValue.Team,
+				AccountID:      staffValue.AccountID,
+			}
+			chmOnborads = append(chmOnborads, chmOnborad)
+		} else if staffValue.Center == "ขอนแก่น" && staffValue.Available == "Available" {
+			khnAvailable := models.StaffCenterStatus{
+				Obj_ID:         staffValue.Obj_ID,
+				UserID:         staffValue.UserID,
+				StartJobsDate:  staffValue.StartJobsDate,
+				FinishJobsDate: staffValue.FinishJobsDate,
+				Matchjob:       staffValue.Matchjob,
+				Status:         staffValue.Status,
+				AddressOnsite:  staffValue.AddressOnsite,
+				StatusSite:     staffValue.StatusSite,
+				CreatedAt:      staffValue.CreatedAt,
+				UpdatedAt:      staffValue.UpdatedAt,
+				Available:      staffValue.Available,
+				Outsource:      staffValue.Outsource,
+				Note:           staffValue.Note,
+				JobID:          staffValue.JobID,
+				ID:             staffValue.ID,
+				Fname:          staffValue.Fname,
+				Lname:          staffValue.Lname,
+				Nname:          staffValue.Nname,
+				StartDate:      staffValue.StartDate,
+				Active:         staffValue.Active,
+				IsTransfer:     staffValue.IsTransfer,
+				LastActiveDate: staffValue.LastActiveDate,
+				Center:         staffValue.Center,
+				Team:           staffValue.Team,
+				AccountID:      staffValue.AccountID,
+			}
+			khnAvailables = append(khnAvailables, khnAvailable)
+		} else if staffValue.Center == "ขอนแก่น" && staffValue.Available == "On Board" {
+			khnOnborad := models.StaffCenterStatus{
+				Obj_ID:         staffValue.Obj_ID,
+				UserID:         staffValue.UserID,
+				StartJobsDate:  staffValue.StartJobsDate,
+				FinishJobsDate: staffValue.FinishJobsDate,
+				Matchjob:       staffValue.Matchjob,
+				Status:         staffValue.Status,
+				AddressOnsite:  staffValue.AddressOnsite,
+				StatusSite:     staffValue.StatusSite,
+				CreatedAt:      staffValue.CreatedAt,
+				UpdatedAt:      staffValue.UpdatedAt,
+				Available:      staffValue.Available,
+				Outsource:      staffValue.Outsource,
+				Note:           staffValue.Note,
+				JobID:          staffValue.JobID,
+				ID:             staffValue.ID,
+				Fname:          staffValue.Fname,
+				Lname:          staffValue.Lname,
+				Nname:          staffValue.Nname,
+				StartDate:      staffValue.StartDate,
+				Active:         staffValue.Active,
+				IsTransfer:     staffValue.IsTransfer,
+				LastActiveDate: staffValue.LastActiveDate,
+				Center:         staffValue.Center,
+				Team:           staffValue.Team,
+				AccountID:      staffValue.AccountID,
+			}
+			khnOnborads = append(khnOnborads, khnOnborad)
+		} else if staffValue.Center == "หาดใหญ่" && staffValue.Available == "Available" {
+			hdyAvailable := models.StaffCenterStatus{
+				Obj_ID:         staffValue.Obj_ID,
+				UserID:         staffValue.UserID,
+				StartJobsDate:  staffValue.StartJobsDate,
+				FinishJobsDate: staffValue.FinishJobsDate,
+				Matchjob:       staffValue.Matchjob,
+				Status:         staffValue.Status,
+				AddressOnsite:  staffValue.AddressOnsite,
+				StatusSite:     staffValue.StatusSite,
+				CreatedAt:      staffValue.CreatedAt,
+				UpdatedAt:      staffValue.UpdatedAt,
+				Available:      staffValue.Available,
+				Outsource:      staffValue.Outsource,
+				Note:           staffValue.Note,
+				JobID:          staffValue.JobID,
+				ID:             staffValue.ID,
+				Fname:          staffValue.Fname,
+				Lname:          staffValue.Lname,
+				Nname:          staffValue.Nname,
+				StartDate:      staffValue.StartDate,
+				Active:         staffValue.Active,
+				IsTransfer:     staffValue.IsTransfer,
+				LastActiveDate: staffValue.LastActiveDate,
+				Center:         staffValue.Center,
+				Team:           staffValue.Team,
+				AccountID:      staffValue.AccountID,
+			}
+			hdyAvailables = append(hdyAvailables, hdyAvailable)
+		} else if staffValue.Center == "หาดใหญ่" && staffValue.Available == "On Board" {
+			hdyOnboard := models.StaffCenterStatus{
+				Obj_ID:         staffValue.Obj_ID,
+				UserID:         staffValue.UserID,
+				StartJobsDate:  staffValue.StartJobsDate,
+				FinishJobsDate: staffValue.FinishJobsDate,
+				Matchjob:       staffValue.Matchjob,
+				Status:         staffValue.Status,
+				AddressOnsite:  staffValue.AddressOnsite,
+				StatusSite:     staffValue.StatusSite,
+				CreatedAt:      staffValue.CreatedAt,
+				UpdatedAt:      staffValue.UpdatedAt,
+				Available:      staffValue.Available,
+				Outsource:      staffValue.Outsource,
+				Note:           staffValue.Note,
+				JobID:          staffValue.JobID,
+				ID:             staffValue.ID,
+				Fname:          staffValue.Fname,
+				Lname:          staffValue.Lname,
+				Nname:          staffValue.Nname,
+				StartDate:      staffValue.StartDate,
+				Active:         staffValue.Active,
+				IsTransfer:     staffValue.IsTransfer,
+				LastActiveDate: staffValue.LastActiveDate,
+				Center:         staffValue.Center,
+				Team:           staffValue.Team,
+				AccountID:      staffValue.AccountID,
+			}
+			hdyOnboards = append(hdyOnboards, hdyOnboard)
+		}
+	}
+
+	//  >> Build struct for data response
+	staffTotal := models.StaffTotal{
+		All:          staffAll,
+		AllAvailable: staffAvailableAll,
+		AllOnBoard:   staffOnboardAll,
+		DevOnBoard:   staffDevOnBoard,
+		DevAvailable: staffDevAvailable,
+		AllDev:       staffDev,
+		ItOnBoard:    staffItOnboard,
+		ItAvailable:  StaffItAvailable,
+		AllIt:        staffIt,
+	}
+
+	staffSite := models.StaffCountCenter{
+		BnkAvaSlide:  bnkAvailables,
+		BnkOnbSlide:  bnkOnborads,
+		BnkAvaSCount: len(bnkAvailables),
+		BnkOnbSCount: len(bnkOnborads),
+		ChmAvaSlide:  chmAvailables,
+		ChmOnbSlide:  chmOnborads,
+		ChmAvaSCount: len(chmAvailables),
+		ChmOnbSCount: len(chmOnborads),
+		KhnAvaSlide:  khnAvailables,
+		KhnOnbSlide:  khnOnborads,
+		KhnAvaSCount: len(khnAvailables),
+		KhnOnbSCount: len(khnOnborads),
+		HdyAvaSlide:  hdyAvailables,
+		HdyOnbSlide:  hdyOnboards,
+		HdyAvaSCount: len(hdyAvailables),
+		HdyOnbSCount: len(hdyOnboards),
+	}
+
+	//Query Participanst project
+	projectQuery := helpers.GetProjectTotal(dateNplus)
+	queryResult, err = collection.Aggregate(context, projectQuery)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	var projectSlide []models.StaffGetProject
+
+	if err := queryResult.All(context, &projectSlide); err != nil {
+		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	}
+
+	// >> Prepare Dashboard Data  : End Method<<
+
+	// >> Response Dashboard Data  : Start Method<<
+	responseData := models.CountStaffDashBoard{
+		Total:   staffTotal,
+		Site:    staffSite,
+		Project: projectSlide,
+	}
+	// >> Response Dashboard Data  : End Method<<
+
+	return helpers.JsonResponse(c, nil, 200, responseData, "Success")
+}
+
+func GetStaffDashBoardTest(c *fiber.Ctx) error {
+	collection := configs.MgConn.Db.Collection("staff_jobs")
+	context := configs.MgConn.Ctx
 
 	date_format_string := "2006-01-02"
 	date_query := c.Query("date", time.Now().Add(-24*time.Hour).Format(date_format_string))
@@ -244,8 +604,8 @@ func GetStaffDashBoard(c *fiber.Ctx) error {
 }
 
 func GetStaffByJobName(c *fiber.Ctx) error {
-	collection := database.MgConn.Db.Collection("staff_jobs")
-	context := database.MgConn.Ctx
+	collection := configs.MgConn.Db.Collection("staff_jobs")
+	context := configs.MgConn.Ctx
 
 	projectId := c.Params("project")
 	objID, err := primitive.ObjectIDFromHex(projectId)
@@ -275,11 +635,9 @@ func GetStaffByJobName(c *fiber.Ctx) error {
 
 /*>>>>>>>>>>     Staffs     <<<<<<<<<<*/
 
-var staffSLide []models.Staff
-
 func GetStaff(c *fiber.Ctx) error {
-	collection := database.MgConn.Db.Collection("staff_jobs")
-	context := database.MgConn.Ctx
+	collection := configs.MgConn.Db.Collection("staff_jobs")
+	context := configs.MgConn.Ctx
 
 	date_format_string := "2006-01-02"
 	date_query := c.Query("date", time.Now().Add(-24*time.Hour).Format(date_format_string))
@@ -303,8 +661,8 @@ func GetStaff(c *fiber.Ctx) error {
 }
 
 func GetFillterStaff(c *fiber.Ctx) error {
-	collection := database.MgConn.Db.Collection("staff_jobs")
-	context := database.MgConn.Ctx
+	collection := configs.MgConn.Db.Collection("staff_jobs")
+	context := configs.MgConn.Ctx
 
 	date_format_string := "2006-01-02"
 	date_query := c.Query("date", time.Now().Add(-24*time.Hour).Format(date_format_string))
@@ -334,7 +692,6 @@ func GetFillterStaff(c *fiber.Ctx) error {
 
 	searchBar := helpers.SplitParser(fillterBody.Search)
 	searchCenter := helpers.SplitParser(fillterBody.Center)
-	fmt.Println(fillterBody.Center)
 	searchAvailable := helpers.SplitParser(fillterBody.Available)
 	searchStatus := helpers.SplitParser(fillterBody.Status)
 	searchTeam := helpers.SplitParser(fillterBody.Team)
@@ -380,10 +737,10 @@ func GetFillterStaff(c *fiber.Ctx) error {
 }
 
 func AddStaff(c *fiber.Ctx) error {
-	collectionStaff := database.MgConn.Db.Collection("staffs")
-	collectionStaffJob := database.MgConn.Db.Collection("staff_jobs")
+	collectionStaff := configs.MgConn.Db.Collection("staffs")
+	collectionStaffJob := configs.MgConn.Db.Collection("staff_jobs")
 	_ = collectionStaffJob
-	context := database.MgConn.Ctx
+	context := configs.MgConn.Ctx
 
 	var staffBody models.NewStaffBody
 
@@ -480,8 +837,6 @@ func AddStaff(c *fiber.Ctx) error {
 		return helpers.JsonResponse(c, err, 400, nil, "Fail")
 	}
 
-	_ = StaffInsertResult
-
 	query = bson.D{{Key: "_id", Value: StaffInsertResult.InsertedID}}
 	queryResult = collectionStaff.FindOne(c.Context(), query)
 
@@ -528,8 +883,6 @@ func AddStaff(c *fiber.Ctx) error {
 func GetStaffById(c *fiber.Ctx) error {
 	userId := c.Params("id")
 
-	fmt.Println(userId)
-
 	var staffResults []models.Staff
 
 	for index, _ := range staffSLide {
@@ -546,8 +899,8 @@ func GetStaffById(c *fiber.Ctx) error {
 }
 
 func GetStaffView(c *fiber.Ctx) error {
-	collection := database.MgConn.Db.Collection("staffs")
-	context := database.MgConn.Ctx
+	collection := configs.MgConn.Db.Collection("staffs")
+	context := configs.MgConn.Ctx
 
 	paramsUser := c.Params("id")
 	_id, err := primitive.ObjectIDFromHex(paramsUser)
@@ -561,12 +914,61 @@ func GetStaffView(c *fiber.Ctx) error {
 		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
 
-	return helpers.JsonResponse(c, nil, 200, staff, "Success")
+	var emails []models.Email
+
+	if len(staff.Email) >= 1 {
+		for _, val := range staff.Email {
+			email := models.Email{
+				Email: fmt.Sprintf("%v", val),
+			}
+			emails = append(emails, email)
+		}
+	} else {
+		email := models.Email{
+			Email: fmt.Sprintf("%v", " "),
+		}
+		emails = append(emails, email)
+	}
+
+	var phones []models.Phone
+
+	if len(staff.Phone) >= 1 {
+		for _, val := range staff.Phone {
+			phone := models.Phone{
+				Phone: fmt.Sprintf("%v", val),
+			}
+			phones = append(phones, phone)
+		}
+	} else {
+		phone := models.Phone{
+			Phone: fmt.Sprintf("%v", " "),
+		}
+		phones = append(phones, phone)
+	}
+
+	staffResponse := models.ResponseStaffGetForUpdate{
+		UserID:    staff.UserID,
+		Email:     emails,
+		Phone:     phones,
+		Skill:     staff.Skill,
+		ID:        staff.ID,
+		Prefix:    staff.Prefix,
+		Fname:     staff.Fname,
+		Lname:     staff.Lname,
+		Nname:     staff.Nname,
+		Center:    staff.Center,
+		Team:      staff.Team,
+		Startdate: staff.Startdate,
+		UpdatedAt: staff.UpdatedAt,
+	}
+	_ = staffResponse
+
+	return helpers.JsonResponse(c, nil, 200, staffResponse, "Success")
 }
 
 func GetStaffJobView(c *fiber.Ctx) error {
-	collection := database.MgConn.Db.Collection("staff_jobs")
-	context := database.MgConn.Ctx
+	collection := configs.MgConn.Db.Collection("staff_jobs")
+	context := configs.MgConn.Ctx
 
 	paramsUser := c.Params("id")
 	userId, err := primitive.ObjectIDFromHex(paramsUser)
@@ -590,12 +992,22 @@ func GetStaffJobView(c *fiber.Ctx) error {
 }
 
 func UpdateStaff(c *fiber.Ctx) error {
-	collection := database.MgConn.Db.Collection("staffs")
-	context := database.MgConn.Ctx
+	collection := configs.MgConn.Db.Collection("staffs")
+	context := configs.MgConn.Ctx
 
-	var staff models.StaffGetForUpdate
+	var staff models.RequestStaffGetForUpdate
 	if err := c.BodyParser(&staff); err != nil {
 		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	var emailInterfaces []interface{}
+	for index, _ := range staff.Email {
+		emailInterfaces = append(emailInterfaces, staff.Email[index].Email)
+	}
+
+	var phoneInterfaces []interface{}
+	for index, _ := range staff.Phone {
+		phoneInterfaces = append(phoneInterfaces, staff.Phone[index].Phone)
 	}
 
 	staff.UpdatedAt = time.Now()
@@ -610,8 +1022,8 @@ func UpdateStaff(c *fiber.Ctx) error {
 	update := bson.D{
 		{Key: "$set",
 			Value: bson.D{
-				{Key: "email", Value: staff.Email},
-				{Key: "phone", Value: staff.Phone},
+				{Key: "email", Value: emailInterfaces},
+				{Key: "phone", Value: phoneInterfaces},
 				{Key: "skill", Value: staff.Skill},
 				{Key: "prefix", Value: staff.Prefix},
 				{Key: "fname", Value: staff.Fname},
