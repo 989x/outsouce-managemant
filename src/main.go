@@ -24,7 +24,6 @@ func main() {
 
 	routes.SetupIndexRoutes(app)
 	v0.SetupHealthCheckRoutes(app)
-	v1.SetupBookRoutes(app)
 	v1.SetupUserRoutes(app)
 
 	port := configs.GetPort()

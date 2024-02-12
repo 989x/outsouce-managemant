@@ -18,24 +18,3 @@ GET {{localhostV0}}/ping
 
 ### Get all users
 GET {{localhostV1}}/users
-
-# ________________________________________ book
-
-### Create a new book
-POST {{localhostV1}}/books
-Content-Type: application/json
-
-{
-  "title": "The Great Gatsby",
-  "author": "F. Scott Fitzgerald",
-  "published_year": 1925
-}
-
-### Get all books
-GET {{localhostV1}}/books
-
-### Get a specific book by ID
-GET {{localhostV1}}/books/:id
-
-### Delete a specific book by ID
-DELETE {{localhostV1}}/books/:id
