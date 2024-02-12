@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -19,20 +20,76 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+func OneLogin(c *fiber.Ctx) error {
+
+	var loginBody models.Login_body
+	if err := c.BodyParser(&loginBody); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	godotenv.Load(".env")
+	validate := validator.New()
+	if err := validate.Struct(loginBody); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	loginRequest := models.Login_request{
+		GrantType:    "password",
+		ClientID:     os.Getenv("CLIENT_ID"),
+		ClientSecret: os.Getenv("CLIENT_SECRET"),
+		Username:     loginBody.Username,
+		Password:     loginBody.Password,
+	}
+
+	jsonConv, err := json.Marshal(loginRequest)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+	buffer := bytes.NewBuffer(jsonConv)
+
+	client := &http.Client{}
+
+	httpRequest, err := http.NewRequest("POST", "https://one.th/api/oauth/getpwd", buffer)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+	httpRequest.Header.Set("Content-Type", "application/json")
+
+	requestClient, err := client.Do(httpRequest)
+	if err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+	defer requestClient.Body.Close()
+
+	httpResult, err := ioutil.ReadAll(requestClient.Body)
+
+	var loginReqponse models.Login_response
+
+	if err = json.Unmarshal(httpResult, &loginReqponse); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
+	}
+
+	if loginReqponse.Result != "Success" {
+		return helpers.JsonResponse(c, errors.New("Username or Passwprd invalid."), 503, nil, "Fail ")
+	}
+
+	return helpers.JsonResponse(c, nil, 200, loginReqponse, "Success")
+}
+
 func Login(c *fiber.Ctx) error {
 
 	var login_body models.Login_body
 	if err := c.BodyParser(&login_body); err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
 
 	godotenv.Load(".env")
 	validate := validator.New()
 	if err := validate.Struct(login_body); err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
 
-	login_request := models.Login_request{
+	loginRequest := models.Login_request{
 		GrantType:    "password",
 		ClientID:     os.Getenv("CLIENT_ID"),
 		ClientSecret: os.Getenv("CLIENT_SECRET"),
@@ -40,55 +97,55 @@ func Login(c *fiber.Ctx) error {
 		Password:     login_body.Password,
 	}
 
-	json_conv, err := json.Marshal(login_request)
+	jsonConv, err := json.Marshal(loginRequest)
 	if err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
-	buffer := bytes.NewBuffer(json_conv)
+	buffer := bytes.NewBuffer(jsonConv)
 
 	client := &http.Client{}
 
-	http_request, err := http.NewRequest("POST", "https://one.th/api/oauth/getpwd", buffer)
+	httpRequest, err := http.NewRequest("POST", "https://one.th/api/oauth/getpwd", buffer)
 	if err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
-	http_request.Header.Set("Content-Type", "application/json")
+	httpRequest.Header.Set("Content-Type", "application/json")
 
-	request_client, err := client.Do(http_request)
+	requestClient, err := client.Do(httpRequest)
 	if err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
-	defer request_client.Body.Close()
+	defer requestClient.Body.Close()
 
-	http_result, err := ioutil.ReadAll(request_client.Body)
+	httpResult, err := ioutil.ReadAll(requestClient.Body)
 
-	var login_reqponse models.Login_response
+	var loginReqponse models.Login_response
 
-	if err = json.Unmarshal(http_result, &login_reqponse); err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
-	}
-
-	if login_reqponse.Result != "Success" {
-		return helpers.JsonResponse(c, nil, 400, nil, "Fail : Username or Passwprd invalid.")
+	if err = json.Unmarshal(httpResult, &loginReqponse); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
 
-	http_request, err = http.NewRequest("GET", "https://one.th/api/account", nil)
+	if loginReqponse.Result != "Success" {
+		return helpers.JsonResponse(c, nil, 503, nil, "Fail : Username or Passwprd invalid.")
+	}
+
+	httpRequest, err = http.NewRequest("GET", "https://one.th/api/account", nil)
 	if err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
 
-	http_request.Header.Set("Authorization", login_reqponse.TokenType+" "+login_reqponse.AccessToken)
+	httpRequest.Header.Set("Authorization", loginReqponse.TokenType+" "+loginReqponse.AccessToken)
 
-	request_client, err = client.Do(http_request)
+	requestClient, err = client.Do(httpRequest)
 	if err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
-	defer request_client.Body.Close()
+	defer requestClient.Body.Close()
 
-	http_result, err = ioutil.ReadAll(request_client.Body)
+	httpResult, err = ioutil.ReadAll(requestClient.Body)
 	var getOneAccount models.Get_OneAccount
-	if err = json.Unmarshal(http_result, &getOneAccount); err != nil {
-		return helpers.JsonResponse(c, err, 400, nil, "Fail")
+	if err = json.Unmarshal(httpResult, &getOneAccount); err != nil {
+		return helpers.JsonResponse(c, err, 503, nil, "Fail")
 	}
 
 	if err != nil {

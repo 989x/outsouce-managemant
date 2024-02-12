@@ -732,6 +732,8 @@ func GetFillterStaff(c *fiber.Ctx) error {
 			searchStaffResults = append(searchStaffResults, staffSLide[index])
 		}
 	}
+	fmt.Println(date_nPlus)
+	fmt.Println(len(staffSLide))
 
 	return helpers.JsonResponse(c, nil, 200, searchStaffResults, "Success")
 }
@@ -1041,4 +1043,8 @@ func UpdateStaff(c *fiber.Ctx) error {
 	}
 
 	return helpers.JsonResponse(c, nil, 200, nil, "Success")
+}
+
+func SyncStaff(c *fiber.Ctx) error {
+	return nil
 }

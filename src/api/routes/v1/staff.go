@@ -2,16 +2,11 @@ package routes
 
 import (
 	controllers "outsource-management/api/controllers/v1"
-	middleware "outsource-management/api/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func InitApiV1(v1 fiber.Router) {
-	auth := v1.Group("/auth")
-	auth.Post("/login", controllers.Login)
-	auth.Get("/user", middleware.RequestAuth(), controllers.Params)
-
+func RoutesStaff(v1 fiber.Router) {
 	staff := v1.Group("/staff")
 	staff.Get("/testdashboard", controllers.GetStaffDashBoardTest)
 	staff.Get("/staffdashboard", controllers.GetStaffDashBoard)
@@ -22,7 +17,4 @@ func InitApiV1(v1 fiber.Router) {
 	staff.Post("/fillter", controllers.GetFillterStaff)
 	staff.Put("/staffs/:id", controllers.UpdateStaff)
 	staff.Get("/skills", controllers.GetAllSkill)
-
-	skill := v1.Group("/skill")
-	skill.Get("/skills", controllers.GetAllSkill)
 }
