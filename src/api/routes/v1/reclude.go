@@ -9,8 +9,9 @@ import (
 func RoutesReclude(v1 fiber.Router) {
 	recludes := v1.Group("/recludes")
 
-	recludes.Get("/recludes", controllers.MethodGet)
 	recludes.Post("/recludes", controllers.MethodPost)
 	recludes.Put("/recludes", controllers.MethodPut)
 	recludes.Delete("/recludes", controllers.MethodDelete)
+
+	recludes.Get("/monthly-attendance", controllers.GetMonthlyEmployeeAttendance)
 }
