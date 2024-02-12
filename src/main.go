@@ -34,10 +34,10 @@ func main() {
 	startArgs.host = startCommand.Flag("host", "Set server host address.").Envar("SERVER_HOST").Default("0.0.0.0").IP()
 	startArgs.port = startCommand.Flag("post", "Set server listen port").Envar("SERVER_PORT").Default("3000").String()
 
-	//Init Database
+	// Init Database
 	configs.InitMongoDb()
 
-	//Ruc case service
+	// Run case service
 	switch kingpin.MustParse(a.Parse(os.Args[1:])) {
 	case startCommand.FullCommand():
 		if err := command.Start(startArgs.host.String(), *startArgs.port); err != nil {

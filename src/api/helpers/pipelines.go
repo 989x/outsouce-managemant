@@ -7,7 +7,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ___________________________________>>>>>>>>>>>>>>>>>>>>>>>>>STAFF<<<<<<<<<<<<<<<<<<<<<<<<<___________________________________//
+// __________________________________________________ Staff
+
 func StaffPrimetiveFilter(available []interface{}, team []interface{}, status []interface{}, center []interface{}) primitive.D {
 	filter := bson.D{
 		{"$and", bson.A{
@@ -581,4 +582,4 @@ func GetSearchStaff(fillter primitive.D, date_nPlus time.Time) []primitive.D {
 	return pipeline
 }
 
-// ___________________________________>>>>>>>>>>>>>>>>>>>>>>>>>STAFF<<<<<<<<<<<<<<<<<<<<<<<<<___________________________________//
+// __________________________________________________ Staff
