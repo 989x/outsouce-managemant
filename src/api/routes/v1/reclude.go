@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func RoutesRecludes(v1 fiber.Router) {
+func RoutesReclude(v1 fiber.Router) {
 	recludes := v1.Group("/recludes")
 
 	recludes.Get("/recludes", controllers.MethodGet)

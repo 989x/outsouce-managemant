@@ -14,11 +14,10 @@ func Start(host string, port string) error {
 	app.Use(cors.New())
 
 	api := app.Group("/api")
-	// v1.InitApiV1(api.Group("/v1"))
 	v1.RoutesAuth(api.Group("/v1"))
 	v1.RoutesStaff(api.Group("/v1"))
 	v1.RoutesSkill(api.Group("/v1"))
-	v1.RoutesRecludes(api.Group("/v1"))
+	v1.RoutesReclude(api.Group("/v1"))
 
 	return app.Listen(fmt.Sprintf("%s:%s", host, port))
 }
